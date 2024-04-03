@@ -34,41 +34,29 @@ config = piCam.create_preview_configuration(main={"size": (640, 480), "format": 
 piCam.configure(config)
 piCam.start()
 
+try:
+	while True:
+		frame = piCam.capture_array()
+		results = model(frame, stream=True)
 
-while True:
-	frame = piCam.capture_array()
-	results = model(frame, stream=True)
-		       
-	if cv2.waitKey(1) == ord("q"):
-		break
-			
-	detect_count = 0
- 
- 	for result in results:
-		names = results.names
-		detect_count = len(result.boxes)
-    
-    print(f'Detecting: {detect_count}')
-    
-cv2.destroyAllWindows()
-piCam.stop()
+		detect_count = 0
 
+		for result in results:
+			detect_count = len(result.boxes)
 
-RED.set_value(0)
-GREEN.set_value(0)
-YELLOW.set_value(0)
-RED.release()
-YELLOW.release()
-GREEN.release()
+		print(f'Detecting: {detect_count}')
 
+		if detect_count > 0:
+			YELLOW.set_value(1)
+		else:
+			YELLOW.set_value(0)
+finally:
+	cv2.destroyAllWindows()
+	piCam.stop()
 
-
-# RED.set_value(1)
-# YELLOW.set_value(1)
-# GREEN.set_value(1)
-# time.sleep(1)
-# RED.set_value(0)
-# GREEN.set_value(0)
-# YELLOW.set_value(0)
-
-   
+	RED.set_value(0)
+	GREEN.set_value(0)
+	YELLOW.set_value(0)
+	RED.release()
+	YELLOW.release()
+	GREEN.release()
