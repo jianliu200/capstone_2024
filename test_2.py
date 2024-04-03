@@ -31,26 +31,28 @@ piCam.start()
 try:
     while True:
         frame = piCam.capture_array()
-        results = model(frame)
+        results = model(frame, stream=True)
 
         class_counts = {}
 
-        for *xyxy, conf, cls in results.xyxy[0]:
-            class_id = int(cls)
-            class_name = results.names[class_id]
+        for result in results:
+            for box in result.boxes:
+                class_name = result.names[int(box.cls)]
+                class_counts[class_name] = class_counts.get(class_name, 0) + 1
 
-            class_counts[class_name] = class_counts.get(class_name, 0) + 1
+        print(f'Detecting: {class_counts}')
 
-        for class_name, count in class_counts.items():
-            print(f'{class_name}: {count}')
-
-        RED.set_value(1 if class_counts.get("person", 0) > 0 else 0)
-        YELLOW.set_value(1 if class_counts.get("car", 0) > 0 else 0)
-        GREEN.set_value(1 if class_counts.get("dog", 0) > 0 else 0)
+        if "person" in class_counts and class_counts["person"] > 0:
+            RED.set_value(1)
+            YELLOW.set_value(0)
+        else:
+            RED.set_value(0)
+            YELLOW.set_value(1)
 
 finally:
     cv2.destroyAllWindows()
     piCam.stop()
+
     RED.set_value(0)
     GREEN.set_value(0)
     YELLOW.set_value(0)
