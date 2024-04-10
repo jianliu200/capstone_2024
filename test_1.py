@@ -50,6 +50,9 @@ try:
 			YELLOW.set_value(1)
 		else:
 			YELLOW.set_value(0)
+			
+		cv2.imshow('YOLO Object Detection', frame)
+		cv2.waitKey(1)
 finally:
 	cv2.destroyAllWindows()
 	piCam.stop()
