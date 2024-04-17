@@ -51,21 +51,18 @@ try:
         center_x = width // 2
         center_y = height // 2
 
-        # Draw lines to separate sidewalks and street sections
 
         # top sidewalk line
-        cv2.line(frame, (0, center_y - (height // 4) ), (width, center_y - (height // 4) - (height // 8)), (0, 0, 255), 2)
         top_sidewalk_slope = ( (center_y - (height // 4) - (height // 8)) - (center_y - (height // 4)) ) / width
         top_sidewalk_intercept = center_y - (height // 4)
 
         # bottom sidewalk line slope
-        cv2.line(frame, (0, height), (width, center_y - (height // 4) + (height // 8)), (0, 0, 255), 2)
         bottom_sidewalk_slope = ( (center_y - (height // 4) + (height // 8)) - (height) ) / width
         bottom_sidewalk_intercept = height
 
         # Plot the lines using the calculated slopes and y-intercepts
-        cv2.line(frame, (0, int(top_sidewalk_intercept)), (width, int(top_sidewalk_slope * width + top_sidewalk_intercept)), (0, 255, 0), 2)
-        cv2.line(frame, (0, int(bottom_sidewalk_intercept)), (width, int(bottom_sidewalk_slope * width + bottom_sidewalk_intercept)), (0, 255, 0), 2)
+        cv2.line(frame, (0, int(top_sidewalk_intercept)), (width, int(top_sidewalk_slope * width + top_sidewalk_intercept)), (0, 0, 255), 2)
+        cv2.line(frame, (0, int(bottom_sidewalk_intercept)), (width, int(bottom_sidewalk_slope * width + bottom_sidewalk_intercept)), (0, 0, 255), 2)
 
         for result in results:
             for box in result.boxes:
@@ -75,16 +72,15 @@ try:
                 x1, y1, x2, y2 = b
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-                cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
                 # Check street section first
-                )
-                if y2 < (top_sidewalk_slope * x2 + top_sidewalk_intercept) and y2 > (bottom_sidewalk_slope * x2 + bottom_sidewalk_intercept):
+                #if x1 > center_y:
+                if y2 > (top_sidewalk_slope * x2 + top_sidewalk_intercept) and y2 < (bottom_sidewalk_slope * x2 + bottom_sidewalk_intercept):
                     street_class_counts[class_name] = street_class_counts.get(class_name, 0) + 1
                 else:
                     sidewalk_class_counts[class_name] = sidewalk_class_counts.get(class_name, 0) + 1
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                #cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
 
         # PEOPLE ON STREET: RED
@@ -118,10 +114,10 @@ try:
         print(f'Detecting on the SIDEWALK: {sidewalk_class_counts}')
         print(f'Detecting on the STREET: {street_class_counts}')
 
-        cv2.imshow('YOLO Object Detection', frame)
+        #cv2.imshow('YOLO Object Detection', frame)
 
-        if cv2.waitKey(1) == ord('q'):
-            break
+        #if cv2.waitKey(1) == ord('q'):
+        #    break
 
 finally:
     cv2.destroyAllWindows()
