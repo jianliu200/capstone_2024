@@ -29,26 +29,43 @@ piCam.configure(config)
 piCam.start()
 
 
-x_line = 100
-
 
 try:
-    left_person_detected = False
-    right_person_detected = False
-    
-    left_start_time = None
-    right_start_time = None
+    sidewalk_person_detected = False
+    street_person_detected = False
+
+    sidewalk_start_time = None
+    street_start_time = None
 
     while True:
         frame = piCam.capture_array()
         results = model(frame, stream=True)
 
-        left_class_counts = {}
-        right_class_counts = {}
+        sidewalk_class_counts = {}
+        street_class_counts = {}
 
-        # Get center line of frame
-        x_middle = frame.shape[1] // 2
-        cv2.line(frame, (x_middle, 0), (x_middle, frame.shape[0]), (255, 0, 0), 2)
+        # Get the dimensions of the image
+        height, width, channels = frame.shape
+
+        # Calculate the center of the image
+        center_x = width // 2
+        center_y = height // 2
+
+        # Draw lines to separate sidewalks and street sections
+
+        # top sidewalk line
+        cv2.line(frame, (0, center_y - (height // 4) ), (width, center_y - (height // 4) - (height // 8)), (0, 0, 255), 2)
+        top_sidewalk_slope = ( (center_y - (height // 4) - (height // 8)) - (center_y - (height // 4)) ) / width
+        top_sidewalk_intercept = center_y - (height // 4)
+
+        # bottom sidewalk line slope
+        cv2.line(frame, (0, height), (width, center_y - (height // 4) + (height // 8)), (0, 0, 255), 2)
+        bottom_sidewalk_slope = ( (center_y - (height // 4) + (height // 8)) - (height) ) / width
+        bottom_sidewalk_intercept = height
+
+        # Plot the lines using the calculated slopes and y-intercepts
+        cv2.line(frame, (0, int(top_sidewalk_intercept)), (width, int(top_sidewalk_slope * width + top_sidewalk_intercept)), (0, 255, 0), 2)
+        cv2.line(frame, (0, int(bottom_sidewalk_intercept)), (width, int(bottom_sidewalk_slope * width + bottom_sidewalk_intercept)), (0, 255, 0), 2)
 
         for result in results:
             for box in result.boxes:
@@ -58,49 +75,53 @@ try:
                 x1, y1, x2, y2 = b
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-                if x1 < x_middle:
-                    left_class_counts[class_name] = left_class_counts.get(class_name, 0) + 1
+                cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+                # Check street section first
+                )
+                if y2 < (top_sidewalk_slope * x2 + top_sidewalk_intercept) and y2 > (bottom_sidewalk_slope * x2 + bottom_sidewalk_intercept):
+                    street_class_counts[class_name] = street_class_counts.get(class_name, 0) + 1
                 else:
-                    right_class_counts[class_name] = right_class_counts.get(class_name, 0) + 1
-                
-                #cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    sidewalk_class_counts[class_name] = sidewalk_class_counts.get(class_name, 0) + 1
+
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
 
         # PEOPLE ON STREET: RED
-        if "person" in left_class_counts and left_class_counts["person"] > 0:
-            if not left_person_detected:
-                left_person_detected = True
-                right_person_detected = False
+        if "person" in street_class_counts and street_class_counts["person"] > 0:
+            if not street_person_detected:
+                street_person_detected = True
+                sidewalk_person_detected = False
                 RED.set_value(1)
                 YELLOW.set_value(0)
                 GREEN.set_value(0)
 
         # PEOPLE WAITING ON SIDEWALK: YELLOW
-        elif "person" in right_class_counts and right_class_counts["person"] > 0:
-            if not right_person_detected:
-                right_start_time = time.time()
-                right_person_detected = True
-                left_person_detected = False
-            elif time.time() - right_start_time >= 1:  # Wait for 2 seconds before switching lights
+        elif "person" in sidewalk_class_counts and sidewalk_class_counts["person"] > 0:
+            if not sidewalk_person_detected:
+                sidewalk_start_time = time.time()
+                sidewalk_person_detected = True
+                street_person_detected = False
+            elif time.time() - sidewalk_start_time >= 1:  # Wait for 2 seconds before switching lights
                 RED.set_value(0)
                 YELLOW.set_value(1)
                 GREEN.set_value(0)
 
         # NOBODY IN SIGHT: GREEN
         else:
-            left_person_detected = False
-            right_person_detected = False
+            sidewalk_person_detected = False
+            street_person_detected = False
             RED.set_value(0)
             YELLOW.set_value(0)
             GREEN.set_value(1)
 
-        print(f'Detecting on the Left Side: {left_class_counts}')
-        print(f'Detecting on the Right Side: {right_class_counts}')
+        print(f'Detecting on the SIDEWALK: {sidewalk_class_counts}')
+        print(f'Detecting on the STREET: {street_class_counts}')
 
-        #cv2.imshow('YOLO Object Detection', frame)
-        
-       # if cv2.waitKey(1) == ord('q'):
-        #    break
+        cv2.imshow('YOLO Object Detection', frame)
+
+        if cv2.waitKey(1) == ord('q'):
+            break
 
 finally:
     cv2.destroyAllWindows()
@@ -112,3 +133,4 @@ finally:
     RED.release()
     YELLOW.release()
     GREEN.release()
+
